@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SentiMirror</title>
+    <link rel="stylesheet" href="style.css" />
+
+    <!--cdn sentiment analysis-->
+    <script src="https://cdn.jsdelivr.net/npm/sentiment-analysis@0.1.2/index.min.js"></script>
+
+    <!--speak it library-->
+    <script src="js/Speakit-beta.v1.0.0.min.js"></script>
+
+  </head>
+  <body>
+    <div id="enter-screen">
+      <h1>Are you ready to reflect?</h1>
+      <p id="status">Speak "yes" or "ready" to enter</p>
+    </div>
+
+    <div id="main-content">
+      <div class="heading">SentiMirror</div>
+      <div class="mirror-wrapper">
+        <video id="mirror" autoplay muted playsinline></video>
+      </div>
+    </div>
+  </body>
+</html>
+

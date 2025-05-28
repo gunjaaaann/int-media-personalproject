@@ -1,0 +1,58 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: white;
+  color: black;
+  font-family: Arial, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#enter-screen {
+  width: 100vw;
+  height: 100vh;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+#enter-screen h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+#status {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+
+
+#main-content {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.heading {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.mirror-wrapper video {
+  width: 90vw;
+  max-width: none;
+  height: 80vh;
+  transform: scaleX(-1);
+  object-fit: cover;
+}
+
