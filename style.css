@@ -38,21 +38,44 @@ body {
 #main-content {
   display: none;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
   height: 100vh;
+  overflow: hidden;
 }
 
-.heading {
-  font-size: 20px;
-  margin-bottom: 20px;
+.mirror-wrapper {
+  width: 90vw;
+  padding-top: 2em;
+  height: 90vh; /* Give it less than 100vh to make room for text */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .mirror-wrapper video {
-  width: 90vw;
-  max-width: none;
-  height: 90vh;
+  width: 100%;
+  height: 100%;
   transform: scaleX(-1);
   object-fit: cover;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 10vh; /* Reserve enough space */
+  width: 90vw;
+  text-align: center;
+  overflow: hidden;
+}
+
+#question-display {
+  padding-top: 1em;
+  height: 5vh;
+}
+
+#output {
+  height: 5vh;
 }
 
