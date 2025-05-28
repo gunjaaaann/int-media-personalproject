@@ -27,7 +27,7 @@ function speakText(text, lang = "en-GB") {
   return new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = lang;
-    utterance.onend = resolve;  // Resolve promise when speaking ends
+    utterance.onend = resolve;
     speechSynthesis.speak(utterance);
   });
 }
@@ -36,7 +36,7 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 const recognition = new SpeechRecognition();
 
 recognition.lang = "en-US";
-recognition.interimResults = false; // final results only for simplicity
+recognition.interimResults = false;
 recognition.maxAlternatives = 1;
 
 function startInitialListening() {
@@ -57,27 +57,23 @@ recognition.onresult = async (event) => {
   console.log("Transcript:", transcript);
 
   if (!mainContent.classList.contains("visible")) {
-    // Before mirror is shown, listen for yes/ready
     if (transcript.includes("yes") || transcript.includes("ready")) {
       status.textContent = "Welcome! Opening mirror...";
-      recognition.stop();  // stop current recognition before starting camera & question
+      recognition.stop();
       await showMirrorAndAskQuestion();
     } else {
       status.textContent = 'Say "yes" or "ready" to enter';
-      recognition.stop(); // stop and restart listening
+      recognition.stop();
     }
   } else {
-    // After mirror is shown, this block can be used if you want continuous recognition (optional)
     outputDiv.textContent = transcript;
   }
 };
 
 recognition.onend = () => {
-  // Restart recognition if mirror is not open
   if (!mainContent.classList.contains("visible")) {
     recognition.start();
   }
-  // Otherwise do not restart — we control next listen after question spoken
 };
 
 async function showMirrorAndAskQuestion() {
@@ -94,36 +90,38 @@ async function showMirrorAndAskQuestion() {
     return;
   }
 
-  // Pick and show question
   const question = pickQuestion(listOfQuestions);
   questionDisplay.textContent = question;
-
-  // Speak question and when done, start capturing answer
   await speakText(question);
-
   startAnswerListening();
 }
 
 function startAnswerListening() {
   status.textContent = "Recording...";
-
-  // Stop previous recognition instance to avoid conflicts
   recognition.stop();
 
-  // Configure recognition for capturing answer
   recognition.interimResults = false;
   recognition.continuous = false;
 
-  recognition.onresult = (event) => {
+  recognition.onresult = async (event) => {
     const answer = event.results[0][0].transcript;
     outputDiv.textContent = answer;
     status.textContent = "Recording stopped.";
     console.log("Captured answer:", answer);
+
+    // Sentiment Analysis
+    try {
+      const analyze = (await import('https://cdn.skypack.dev/sentiment-analysis')).default;
+      const result = analyze(answer);
+      console.log("Sentiment Analysis:", result);
+
+    } catch (err) {
+      console.error("Failed to load Sentiment module:", err);
+    }
   };
 
   recognition.onend = () => {
     status.textContent = "Finished listening for answer.";
-    // If you want to ask next question automatically, you could call showMirrorAndAskQuestion() here
   };
 
   recognition.onerror = (event) => {
@@ -134,7 +132,6 @@ function startAnswerListening() {
   recognition.start();
 }
 
-// On page load, start listening for "yes" or "ready"
 window.onload = () => {
   if (!SpeechRecognition) {
     alert("Speech recognition not supported in this browser.");
