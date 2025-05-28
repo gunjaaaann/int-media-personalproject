@@ -3,6 +3,7 @@ const status = document.getElementById("status");
 const mainContent = document.getElementById("main-content");
 const video = document.getElementById("mirror");
 const questionDisplay = document.getElementById("question-display");
+const outputDiv = document.getElementById("output");
 
 let listOfQuestions = [
   "What kind of song is playing in the background of your thoughts?",
@@ -23,83 +24,121 @@ function pickQuestion(list) {
 }
 
 function speakText(text, lang = "en-GB") {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang;
-  speechSynthesis.speak(utterance);
+  return new Promise((resolve) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    utterance.onend = resolve;  // Resolve promise when speaking ends
+    speechSynthesis.speak(utterance);
+  });
 }
 
-function startListening() {
-  if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-    alert("Speech recognition not supported. Please use Chrome or Edge.");
-    return;
-  }
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
+recognition.lang = "en-US";
+recognition.interimResults = false; // final results only for simplicity
+recognition.maxAlternatives = 1;
 
-  recognition.lang = "en-US";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-
+function startInitialListening() {
+  status.textContent = "Say 'yes' or 'ready' to start";
   recognition.start();
+}
+
+recognition.onstart = () => {
   status.textContent = "Listening...";
+};
 
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript.toLowerCase();
-    status.textContent = `You said: "${transcript}"`;
+recognition.onerror = (event) => {
+  status.textContent = "Error: " + event.error;
+};
 
+recognition.onresult = async (event) => {
+  const transcript = event.results[0][0].transcript.toLowerCase();
+  console.log("Transcript:", transcript);
+
+  if (!mainContent.classList.contains("visible")) {
+    // Before mirror is shown, listen for yes/ready
     if (transcript.includes("yes") || transcript.includes("ready")) {
       status.textContent = "Welcome! Opening mirror...";
-      showMirror();
+      recognition.stop();  // stop current recognition before starting camera & question
+      await showMirrorAndAskQuestion();
     } else {
       status.textContent = 'Say "yes" or "ready" to enter';
+      recognition.stop(); // stop and restart listening
     }
-  };
+  } else {
+    // After mirror is shown, this block can be used if you want continuous recognition (optional)
+    outputDiv.textContent = transcript;
+  }
+};
 
-  recognition.onerror = (event) => {
-    status.textContent = "Error: " + event.error;
-  };
+recognition.onend = () => {
+  // Restart recognition if mirror is not open
+  if (!mainContent.classList.contains("visible")) {
+    recognition.start();
+  }
+  // Otherwise do not restart — we control next listen after question spoken
+};
 
-  recognition.onend = () => {
-    if (!mainContent.classList.contains("visible")) {
-      recognition.start();
-    }
-  };
-}
-
-function showMirror() {
+async function showMirrorAndAskQuestion() {
   enterScreen.style.display = "none";
   mainContent.style.display = "flex";
   mainContent.classList.add("visible");
 
-  navigator.mediaDevices
-    .getUserMedia({ video: true })
-    .then((stream) => {
-      video.srcObject = stream;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+  } catch (err) {
+    alert("Camera access denied or not available.");
+    console.error(err);
+    return;
+  }
 
-      // Delay to let the camera load
-      setTimeout(() => {
-        const question = pickQuestion(listOfQuestions);
-        questionDisplay.textContent = question;
-        speakText(question);
-      }, 1000);
-    })
-    .catch((err) => {
-      alert("Camera access denied or not available.");
-      console.error(err);
-    });
+  // Pick and show question
+  const question = pickQuestion(listOfQuestions);
+  questionDisplay.textContent = question;
+
+  // Speak question and when done, start capturing answer
+  await speakText(question);
+
+  startAnswerListening();
 }
 
-// Check mic permissions on load
-if (navigator.permissions) {
-  navigator.permissions.query({ name: "microphone" }).then((result) => {
-    if (result.state === "denied") {
-      alert("Microphone access is denied. Please enable it in your browser settings.");
-    }
-  });
+function startAnswerListening() {
+  status.textContent = "Recording...";
+
+  // Stop previous recognition instance to avoid conflicts
+  recognition.stop();
+
+  // Configure recognition for capturing answer
+  recognition.interimResults = false;
+  recognition.continuous = false;
+
+  recognition.onresult = (event) => {
+    const answer = event.results[0][0].transcript;
+    outputDiv.textContent = answer;
+    status.textContent = "Recording stopped.";
+    console.log("Captured answer:", answer);
+  };
+
+  recognition.onend = () => {
+    status.textContent = "Finished listening for answer.";
+    // If you want to ask next question automatically, you could call showMirrorAndAskQuestion() here
+  };
+
+  recognition.onerror = (event) => {
+    status.textContent = "Error: " + event.error;
+    console.error(event.error);
+  };
+
+  recognition.start();
 }
 
-// Start listening when the page loads
+// On page load, start listening for "yes" or "ready"
 window.onload = () => {
-  startListening();
+  if (!SpeechRecognition) {
+    alert("Speech recognition not supported in this browser.");
+    return;
+  }
+  startInitialListening();
 };
